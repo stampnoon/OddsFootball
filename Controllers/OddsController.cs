@@ -21,6 +21,7 @@ namespace FootballAPI.Controllers
             string LeagueName;
             Event Eventdata;
             Odds Oddsdata;
+            OddPers OddsPerdata;
             List<BetData> BetData = new List<BetData>();
 
             string URL = "https://app.oddsapi.io/api/v1/odds?sport=soccer&apikey=155cd660-57a7-11ea-9697-a77f73d8dc3e";
@@ -36,17 +37,15 @@ namespace FootballAPI.Controllers
             //Convert Json to object
             var ObjectOdds = JsonConvert.DeserializeObject<List<RootObject>>(JsonStr);
 
-            int countAll = 0;
-            int countIn = 0;
             foreach (var eachobject in ObjectOdds)
             {
                 LeagueName = "";
                 Eventdata = null;
                 Oddsdata = null;
-                countAll++;
+                OddsPerdata = null;
+
                 if (eachobject.Sites.onextwo != null) //เลือกเฉพาะตัวที่มีราคาต่อรองแล้ว
                 {
-                    countIn++;
                     //IF have League
                     if (eachobject.League.name != null)
                     {
@@ -86,19 +85,31 @@ namespace FootballAPI.Controllers
                         {
                             Oddsdata = eachobject.Sites.onextwo.onexbet.odds;
                         }
+
+                        //IF have Odds --> Set percent win-lose-draw rate
+                        if (Oddsdata != null)
+                        {
+                            var item2 = new OddPers
+                            {
+                                OnePer = (Oddsdata.two * 100) / (Oddsdata.one + Oddsdata.two + Oddsdata.X),
+                                TwoPer = (Oddsdata.one * 100) / (Oddsdata.one + Oddsdata.two + Oddsdata.X),
+                                XPer = (Oddsdata.X * 100) / (Oddsdata.one + Oddsdata.two + Oddsdata.X)
+                            };
+                            OddsPerdata = item2;
+                        }
                     }
 
+                    //Add data into list for send back to front-end
                     var item = new BetData
                     {
                         League = LeagueName,
                         Event = Eventdata,
-                        odds = Oddsdata
+                        odds = Oddsdata,
+                        OddsPers = OddsPerdata
                     };
                     BetData.Add(item);
                 }
             }
-            Console.WriteLine("Count ALL : " + countAll);
-            Console.WriteLine("Count IN : " + countIn);
             return BetData;
         }
 
@@ -110,7 +121,7 @@ namespace FootballAPI.Controllers
 
             // GET request
             request.Method = "GET";
-            request.ReadWriteTimeout = 5000;
+            request.ReadWriteTimeout = 10000;
             request.ContentType = "text/html;charset=UTF-8";
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
             Stream myResponseStream = response.GetResponseStream();

@@ -7,5 +7,6 @@ namespace FootballAPI.Models
         public string League { get; set; }
         public Event Event { get; set; }
         public Odds odds { get; set; }
+        public OddPers OddsPers { get; set; }
     }
 }
